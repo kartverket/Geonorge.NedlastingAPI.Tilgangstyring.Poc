@@ -9,6 +9,8 @@ namespace Geonorge.Download.Services
     {
         public async Task StreamRemoteFileToResponseAsync(HttpContext httpContext, string url)
         {
+            // TODO: Test: rewrite restricted access url
+            string url_rewrite = url.Replace("geonorgedata.statkart.no", "rin-fs0834.statkart.no");
             const int bufferSize = 10_000;
 
             var cancellationToken = httpContext.RequestAborted;
@@ -17,7 +19,7 @@ namespace Geonorge.Download.Services
             {
                 var client = httpClientFactory.CreateClient();
 
-                using var remoteResponse = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+                using var remoteResponse = await client.GetAsync(url_rewrite, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
                 if (!remoteResponse.IsSuccessStatusCode || remoteResponse.Content == null)
                 {
@@ -38,7 +40,7 @@ namespace Geonorge.Download.Services
                 var response = httpContext.Response;
                 response.ContentType = "application/octet-stream";
 
-                var fileName = Path.GetFileName(new Uri(url).AbsolutePath);
+                var fileName = Path.GetFileName(new Uri(url_rewrite).AbsolutePath);
                 response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
 
                 if (remoteResponse.Content.Headers.ContentLength.HasValue)
@@ -55,12 +57,12 @@ namespace Geonorge.Download.Services
             }
             catch (OperationCanceledException)
             {
-                logger.LogWarning("Client disconnected during streaming of file from: {Url}", url);
+                logger.LogWarning("Client disconnected during streaming of file from: {Url}", url_rewrite);
                 // No rethrow needed — cancellation ends the response
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unhandled exception while streaming file from: {Url}", url);
+                logger.LogError(ex, "Unhandled exception while streaming file from: {Url}", url_rewrite);
                 if (!httpContext.Response.HasStarted)
                 {
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
