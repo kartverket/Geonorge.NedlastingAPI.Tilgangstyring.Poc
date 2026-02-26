@@ -455,8 +455,13 @@ app.Use(async (context, next) =>
 
     if (!string.IsNullOrEmpty(path) && path.Contains("//"))
     {
-        context.Request.Path = new PathString(
-            Regex.Replace(path, "/{2,}", "/"));
+        var normalizedPath = Regex
+            .Replace(path, "/{2,}", "/");
+
+        var newUrl = normalizedPath + context.Request.QueryString;
+
+        context.Response.Redirect(newUrl, permanent: false);
+        return;
     }
 
     await next();
