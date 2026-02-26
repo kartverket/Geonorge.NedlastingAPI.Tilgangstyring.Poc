@@ -34,6 +34,7 @@ using System;
 using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -444,7 +445,22 @@ builder.Services.AddRazorComponents()
 
 builder.WebHost.UseStaticWebAssets();
 SimpleMultiselectGlobals.Standalone = true;
+
 var app = builder.Build();
+
+// --- Middleware for cleaning up double slashes in URLs ---
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+
+    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
+    {
+        context.Request.Path = new PathString(
+            Regex.Replace(path, "/{2,}", "/"));
+    }
+
+    await next();
+});
 
 app.UseRequestLocalization(options =>
 {
