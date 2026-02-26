@@ -136,7 +136,8 @@ builder.Services
             {
                 var req = ctx.Request;
 
-                var host = req.Host.Value; // change if proxy doesn't preserve original Host
+                //var host = req.Host.Value; // change if proxy doesn't preserve original Host
+                var host = req.Headers["X-Forwarded-Host"].FirstOrDefault() ?? req.Host.Value;
                 var proto = req.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? req.Scheme;
 
                 ctx.ProtocolMessage.RedirectUri = $"{proto}://{host}{ctx.Options.CallbackPath}";
