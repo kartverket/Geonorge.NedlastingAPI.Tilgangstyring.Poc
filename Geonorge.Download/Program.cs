@@ -449,23 +449,23 @@ SimpleMultiselectGlobals.Standalone = true;
 var app = builder.Build();
 
 // --- Middleware for cleaning up double slashes in URLs ---
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value;
+//app.Use(async (context, next) =>
+//{
+//    var path = context.Request.Path.Value;
 
-    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
-    {
-        var normalizedPath = Regex
-            .Replace(path, "/{2,}", "/");
+//    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
+//    {
+//        var normalizedPath = Regex
+//            .Replace(path, "/{2,}", "/");
 
-        var newUrl = normalizedPath + context.Request.QueryString;
+//        var newUrl = normalizedPath + context.Request.QueryString;
 
-        context.Response.Redirect(newUrl, permanent: false);
-        return;
-    }
+//        context.Response.Redirect(newUrl, permanent: false);
+//        return;
+//    }
 
-    await next();
-});
+//    await next();
+//});
 
 app.UseRequestLocalization(options =>
 {
