@@ -94,7 +94,8 @@ builder.Services
         //options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
         options.SlidingExpiration = false;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(25);
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SameSite = SameSiteMode.None;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     })
     .AddOpenIdConnect(OpenIdConnectDefaults.AuthenticationScheme, oidc =>
     {
@@ -128,6 +129,13 @@ builder.Services
         oidc.SignedOutCallbackPath = "/signout-callback-oidc";
         //oidc.SignedOutRedirectUri = "/?logout=true"; // builder.Configuration["auth:oidc:PostLogoutRedirectUri"];
         oidc.RemoteSignOutPath = "/signout-oidc";
+
+        // Ensure OIDC temporary cookies survive cross-site redirects
+        oidc.NonceCookie.SameSite = SameSiteMode.None;
+        oidc.CorrelationCookie.SameSite = SameSiteMode.None;
+        oidc.NonceCookie.SecurePolicy = CookieSecurePolicy.Always;
+        oidc.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
+
         oidc.Events = new OpenIdConnectEvents
         {
             OnTokenValidated = async ctx =>
@@ -139,10 +147,13 @@ builder.Services
                 var req = ctx.Request;
 
                 //var host = req.Host.Value; // change if proxy doesn't preserve original Host
-                var host = req.Headers["X-Forwarded-Host"].FirstOrDefault() ?? req.Host.Value;
-                var proto = req.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? req.Scheme;
+                //var host = req.Headers["X-Forwarded-Host"].FirstOrDefault() ?? req.Host.Value;
+                //var proto = req.Headers["X-Forwarded-Proto"].FirstOrDefault() ?? req.Scheme;
 
-                ctx.ProtocolMessage.RedirectUri = $"{proto}://{host}{ctx.Options.CallbackPath}";
+                //ctx.ProtocolMessage.RedirectUri = $"{proto}://{host}{ctx.Options.CallbackPath}";
+
+                // Use the forwarded-headers-adjusted values (requires UseForwardedHeaders early in pipeline)
+                ctx.ProtocolMessage.RedirectUri = $"{req.Scheme}://{req.Host}{ctx.Options.CallbackPath}";
                 return Task.CompletedTask;
             }
         };
