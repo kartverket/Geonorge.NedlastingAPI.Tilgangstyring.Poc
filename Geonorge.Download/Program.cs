@@ -470,6 +470,21 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     }
 });
 
+// TODO: remove when working
+app.Use(async (ctx, next) =>
+{
+    var rip = ctx.Connection.RemoteIpAddress?.ToString() ?? "<null>";
+    var host = ctx.Request.Host.ToString();
+    var scheme = ctx.Request.Scheme;
+    var xfHost = ctx.Request.Headers["X-Forwarded-Host"].ToString();
+    var xfProto = ctx.Request.Headers["X-Forwarded-Proto"].ToString();
+    var xff = ctx.Request.Headers["X-Forwarded-For"].ToString();
+    Log.Information("DBG rIP={RemoteIp} scheme={Scheme} host={Host} xfProto={XFProto} xfHost={XFHost} xff={XFF}",
+        rip, scheme, host, xfProto, xfHost, xff);
+
+    await next();
+});
+
 // --- Middleware for cleaning up double slashes in URLs ---
 //app.Use(async (context, next) =>
 //{
