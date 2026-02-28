@@ -464,8 +464,10 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
     ForwardLimit = int.Parse(builder.Configuration["HeaderForwardLimit"]!), // Default is 1
-    //KnownNetworks = { },
-    KnownProxies = { IPAddress.Loopback }
+    KnownProxies = { IPAddress.Loopback, IPAddress.Parse("127.0.0.6") },
+    KnownNetworks = {
+        new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("10.0.0.0"), 8),
+    }
 });
 
 // --- Middleware for cleaning up double slashes in URLs ---
