@@ -53,6 +53,17 @@ services:
     networks:
       - geonorge-network
 
+  # proxy:
+  #   image: nginx:latest
+  #   volumes:
+  #     - ./volumes/nginx.conf:/etc/nginx/conf.d/default.conf
+  #     - ./volumes/nginx.crt:/etc/ssl/certs/selfsigned.crt
+  #     - ./volumes/nginx.key:/etc/ssl/private/selfsigned.key
+  #   ports:
+  #     - "443:443"
+  #   networks:
+  #     - geonorge-network
+
   # geonorge.download.db:
   #   image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.18.0
   #   command: >

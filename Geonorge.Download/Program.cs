@@ -32,6 +32,7 @@ using SimpleBlazorMultiselect;
 using StackExchange.Redis;
 using System;
 using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
@@ -448,6 +449,14 @@ SimpleMultiselectGlobals.Standalone = true;
 
 var app = builder.Build();
 
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+    ForwardLimit = int.Parse(builder.Configuration["HeaderForwardLimit"]!), // Default is 1
+    //KnownNetworks = { },
+    KnownProxies = { IPAddress.Loopback }
+});
+
 // --- Middleware for cleaning up double slashes in URLs ---
 //app.Use(async (context, next) =>
 //{
@@ -546,12 +555,6 @@ app.UseSwaggerUI(options =>
 app.UseCors("AllowAll"); // Or switch to a named policy as needed
 
 app.UseOutputCache();
-
-app.UseForwardedHeaders(new ForwardedHeadersOptions
-{
-    ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
-    ForwardLimit = int.Parse(builder.Configuration["HeaderForwardLimit"]!) // Default is 1
-});
 
 app.UseStaticFiles();
 
