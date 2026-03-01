@@ -460,6 +460,24 @@ SimpleMultiselectGlobals.Standalone = true;
 
 var app = builder.Build();
 
+// --- Middleware for cleaning up double slashes in URLs ---
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+
+    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
+    {
+        var normalizedPath = Regex.Replace(path, "/{2,}", "/");
+
+        var newUrl = normalizedPath + context.Request.QueryString;
+
+        context.Response.Redirect(newUrl, permanent: false);
+        return;
+    }
+
+    await next();
+});
+
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
@@ -484,25 +502,6 @@ app.Use(async (ctx, next) =>
 
     await next();
 });
-
-// --- Middleware for cleaning up double slashes in URLs ---
-//app.Use(async (context, next) =>
-//{
-//    var path = context.Request.Path.Value;
-
-//    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
-//    {
-//        var normalizedPath = Regex
-//            .Replace(path, "/{2,}", "/");
-
-//        var newUrl = normalizedPath + context.Request.QueryString;
-
-//        context.Response.Redirect(newUrl, permanent: false);
-//        return;
-//    }
-
-//    await next();
-//});
 
 app.UseRequestLocalization(options =>
 {
