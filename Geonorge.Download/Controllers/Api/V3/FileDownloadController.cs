@@ -3,6 +3,7 @@ using Geonorge.Download.Models;
 using Geonorge.Download.Services;
 using Geonorge.Download.Services.Auth;
 using Geonorge.Download.Services.Interfaces;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,7 @@ namespace Geonorge.Download.Controllers.Api.V3
     [Route("api")]
     [Route("api/v{version:apiVersion}")]
     [AllowAnonymous]
-    [Authorize(AuthenticationSchemes = $"{BasicMachineAuthHandler.SchemeName},{JwtBearerDefaults.AuthenticationScheme}")]
+    [Authorize(AuthenticationSchemes = $"{BasicMachineAuthHandler.SchemeName},{JwtBearerDefaults.AuthenticationScheme},{CookieAuthenticationDefaults.AuthenticationScheme}")]
     public class FileDownloadController(ILogger<FileDownloadController> logger, IConfiguration config, IFileService fileService, IDownloadService downloadService) : ControllerBase
     {
         /// <summary>
@@ -68,7 +69,7 @@ namespace Geonorge.Download.Controllers.Api.V3
 
 
                 if (Request.Headers.Accept.Any(h => h.Contains("text/html"))) // be kind to browsers and redirect to login page
-                    return Redirect(UrlToAuthenticationPageWithRedirectToDownloadUrl(config["DownloadUrl"] + "/api/download/file/" + datasetUuid + "/" + fileUuid));
+                    return Redirect(UrlToAuthenticationPageWithRedirectToDownloadUrl(config["DownloadUrl"] + "api/download/file/" + datasetUuid + "/" + fileUuid));
 
                 return Forbid(BasicMachineAuthHandler.SchemeName); // TODO: Make smart scheme?
             }

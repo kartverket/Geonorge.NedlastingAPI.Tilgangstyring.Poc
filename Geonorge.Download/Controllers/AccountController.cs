@@ -19,11 +19,15 @@ namespace Geonorge.Download.Controllers
         [HttpGet("login")]
         public IActionResult Login(string returnUrl = "/")
         {
-            var redirectUri = returnUrl; // string.IsNullOrWhiteSpace(config["auth:oidc:RedirectUri"]) ? "/" : config["auth:oidc:RedirectUri"];
-            
+            if (string.IsNullOrWhiteSpace(returnUrl))
+                returnUrl = "/";
+
+            if (User?.Identity?.IsAuthenticated == true)
+                return Redirect(returnUrl);
+
             return Challenge(new AuthenticationProperties
             {
-                RedirectUri = redirectUri
+                RedirectUri = returnUrl
             }, OpenIdConnectDefaults.AuthenticationScheme);
         }
 
