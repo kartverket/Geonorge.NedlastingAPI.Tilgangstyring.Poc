@@ -17,22 +17,13 @@ namespace Geonorge.Download.Controllers
     {
         // GET /account/login
         [HttpGet("login")]
-        public IActionResult Login(string? returnUrl = "/")
+        public IActionResult Login(string returnUrl = "/")
         {
-            returnUrl = NormalizeReturnUrl(returnUrl);
-
-            // If already signed in locally, don't re-challenge (breaks infinite loop)
-            if (User?.Identity?.IsAuthenticated == true)
-            {
-                logger.LogDebug("Already authenticated, redirecting to {ReturnUrl}", returnUrl);
-                return LocalRedirect(returnUrl);
-            }
-
-            logger.LogDebug("Not authenticated, challenging OIDC. ReturnUrl={ReturnUrl}", returnUrl);
-
+            var redirectUri = returnUrl; // string.IsNullOrWhiteSpace(config["auth:oidc:RedirectUri"]) ? "/" : config["auth:oidc:RedirectUri"];
+            
             return Challenge(new AuthenticationProperties
             {
-                RedirectUri = returnUrl
+                RedirectUri = redirectUri
             }, OpenIdConnectDefaults.AuthenticationScheme);
         }
 
@@ -73,22 +64,6 @@ namespace Geonorge.Download.Controllers
                 });
 
             return Redirect(returnUrl);
-        }
-
-        private string NormalizeReturnUrl(string? returnUrl)
-        {
-            if (string.IsNullOrWhiteSpace(returnUrl))
-                return "/";
-
-            // kill accidental double slashes that can create weirdness
-            while (returnUrl.Contains("//"))
-                returnUrl = returnUrl.Replace("//", "/");
-
-            // Only allow local redirects (prevents open redirect vulnerabilities)
-            if (!Url.IsLocalUrl(returnUrl))
-                return "/";
-
-            return returnUrl;
         }
     }
 }
