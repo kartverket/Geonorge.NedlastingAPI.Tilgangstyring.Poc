@@ -582,7 +582,7 @@ app.UseSwaggerUI(options =>
 // --- Middleware ---
 app.UseCors("AllowAll"); // Or switch to a named policy as needed
 
-//app.UseOutputCache();
+app.UseOutputCache();
 
 app.UseStaticFiles();
 
