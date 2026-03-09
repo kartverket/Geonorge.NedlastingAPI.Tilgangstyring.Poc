@@ -460,24 +460,6 @@ SimpleMultiselectGlobals.Standalone = true;
 
 var app = builder.Build();
 
-// --- Middleware for cleaning up double slashes in URLs ---
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value;
-
-    if (!string.IsNullOrEmpty(path) && path.Contains("//"))
-    {
-        var normalizedPath = Regex.Replace(path, "/{2,}", "/");
-
-        var newUrl = normalizedPath + context.Request.QueryString;
-
-        context.Response.Redirect(newUrl, permanent: false);
-        return;
-    }
-
-    await next();
-});
-
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
@@ -486,6 +468,25 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     KnownNetworks = {
         new Microsoft.AspNetCore.HttpOverrides.IPNetwork(IPAddress.Parse("10.0.0.0"), 8),
     }
+});
+
+// --- Middleware for cleaning up double slashes in URLs ---
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value;
+
+    if (!string.IsNullOrEmpty(path) &&
+        path.StartsWith("/api/download/file/", StringComparison.OrdinalIgnoreCase) &&
+        path.Contains("//", StringComparison.Ordinal))
+    {
+        var normalizedPath = Regex.Replace(path, "/{2,}", "/");
+        if (!string.Equals(path, normalizedPath, StringComparison.Ordinal))
+        {
+            context.Request.Path = new PathString(normalizedPath);
+        }
+    }
+
+    await next();
 });
 
 // TODO: remove when working
