@@ -489,6 +489,8 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseRouting();
+
 // TODO: remove when working
 app.Use(async (ctx, next) =>
 {
