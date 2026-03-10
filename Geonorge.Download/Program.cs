@@ -214,6 +214,7 @@ builder.Services.AddScoped<IMachineAccountService, MachineAccountService>();
 
 // --- Internal Services ---
 builder.Services.AddScoped<IUpdateMetadataService, UpdateMetadataService>();
+builder.Services.AddScoped<IUpdateFileStatusService, UpdateFileStatusService>();
 
 // Optional service using HttpClient
 builder.Services.AddHttpClient<IExternalRequestService, ExternalRequestService>(client =>
