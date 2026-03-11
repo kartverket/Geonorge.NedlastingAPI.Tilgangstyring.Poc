@@ -158,7 +158,13 @@ namespace Geonorge.Download.Services
 
             var fmeToken = config["FmeToken"];
 
-            var urlBuilder = new StringBuilder(clipperUrl);
+            string clipperUrlHttps;
+            if (clipperUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                clipperUrlHttps = "https://" + clipperUrl.Substring("http://".Length);
+            else
+                clipperUrlHttps = clipperUrl;
+
+            var urlBuilder = new StringBuilder(clipperUrlHttps);
             if (!string.IsNullOrEmpty(orderItem.ClipperFile))
             {
                 urlBuilder.Append("CLIPPER_FILE=").Append(System.Web.HttpUtility.UrlEncode(orderItem.ClipperFile));
