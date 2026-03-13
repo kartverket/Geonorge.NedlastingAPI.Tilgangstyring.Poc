@@ -208,7 +208,7 @@ builder.Services.AddScoped<IBasicAuthenticationCredentialValidator, BasicAuthent
 builder.Services.AddScoped<IClipperService, ClipperService>();
 builder.Services.AddScoped<IOrderBundleService, OrderBundleService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
-builder.Services.AddScoped<IEmailService, EmailService>();
+//builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IMachineAccountService, MachineAccountService>();
 
@@ -217,6 +217,7 @@ builder.Services.AddScoped<IUpdateMetadataService, UpdateMetadataService>();
 builder.Services.AddScoped<IUpdateFileStatusService, UpdateFileStatusService>();
 
 // Optional service using HttpClient
+builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddHttpClient<IExternalRequestService, ExternalRequestService>(client =>
 {
     var timeout = int.TryParse(builder.Configuration["HttpTimeout"], out var seconds) && seconds > 0
