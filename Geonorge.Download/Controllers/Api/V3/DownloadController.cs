@@ -75,8 +75,8 @@ namespace Geonorge.Download.Controllers.Api.V3
             // Stream restricted data directly to the client
             await downloadService.StreamRemoteFileToResponseAsync(HttpContext, order.DownloadBundleUrl);
 
-            // Response already written
-            return NoContent();
+            // The response body has already been streamed to the client.
+            return new EmptyResult();
         }
 
         /// <summary>
@@ -132,8 +132,8 @@ namespace Geonorge.Download.Controllers.Api.V3
             // Stream restricted data directly to the client
             await downloadService.StreamRemoteFileToResponseAsync(HttpContext, item.DownloadUrl);
 
-            // Response already written
-            return NoContent();
+            // The response body has already been streamed to the client.
+            return new EmptyResult();
         }
 
         /// <summary>
