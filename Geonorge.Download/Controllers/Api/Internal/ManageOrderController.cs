@@ -21,7 +21,7 @@ namespace Geonorge.Download.Controllers.Api.Internal
         /// </summary>
         /// <returns>HTTP status codes 200 if ok.</returns>
         [HttpPost("update-file-status")]
-        public IActionResult UpdateFileStatus()
+        public async Task<IActionResult> UpdateFileStatus()
         {
             // TODO: FME Should use headers for Content-Type=application/json instead of adding it in query parameter.
             try
@@ -30,7 +30,7 @@ namespace Geonorge.Download.Controllers.Api.Internal
 
                 using (var reader = new StreamReader(Request.Body))
                 {
-                    var body = reader.ReadToEnd();
+                    var body = await reader.ReadToEndAsync();
                     request = JsonSerializer.Deserialize<UpdateFileStatusRequest>(
                         body,
                         new JsonSerializerOptions
