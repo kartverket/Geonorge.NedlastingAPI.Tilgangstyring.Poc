@@ -5,6 +5,7 @@ using Geonorge.Download.Services.Auth;
 using Geonorge.Download.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Geonorge.Download.Controllers.Api.Internal
 {
@@ -18,13 +19,32 @@ namespace Geonorge.Download.Controllers.Api.Internal
         /// <summary>
         /// Update status on a given file that has been processed.
         /// </summary>
-        /// <param name="request">Updated information about a file.</param>
         /// <returns>HTTP status codes 200 if ok.</returns>
         [HttpPost("update-file-status")]
-        public IActionResult UpdateFileStatus(UpdateFileStatusRequest request)
+        public IActionResult UpdateFileStatus()
         {
+            // TODO: FME Should use headers for Content-Type=application/json instead of adding it in query parameter.
             try
             {
+                UpdateFileStatusRequest? request;
+
+                using (var reader = new StreamReader(Request.Body))
+                {
+                    var body = reader.ReadToEnd();
+                    request = JsonSerializer.Deserialize<UpdateFileStatusRequest>(
+                        body,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                }
+
+                if (request == null)
+                {
+                    logger.LogInformation("Bad request - could not deserialize request body.");
+                    return BadRequest("Invalid request body.");
+                }
+
                 var updateFileStatusInformation = new UpdateFileStatusInformation
                 {
                     FileId = request.FileId,
@@ -45,7 +65,7 @@ namespace Geonorge.Download.Controllers.Api.Internal
             }
             catch (Exception e)
             {
-                logger.LogError(e.Message, e);
+                logger.LogError(e, "Failed to update file status");
                 return StatusCode(StatusCodes.Status500InternalServerError, e);
             }
             return Ok();
