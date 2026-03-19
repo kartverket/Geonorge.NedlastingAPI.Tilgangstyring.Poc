@@ -27,6 +27,7 @@ using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
+using Prometheus;
 using Serilog;
 using SimpleBlazorMultiselect;
 using StackExchange.Redis;
@@ -38,6 +39,8 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 
 var builder = WebApplication.CreateBuilder(args);
+const string metricsPath = "/metrics";
+var metricsPort = builder.Configuration.GetValue<int?>("Metrics:Port") ?? 8081;
 
 // Setup Serilog
 Log.Logger = new LoggerConfiguration()
@@ -472,6 +475,28 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
     }
 });
 
+app.Use(async (context, next) =>
+{
+    var isMetricsPort = context.Connection.LocalPort == metricsPort;
+    var isMetricsPath =
+        context.Request.Path.Equals(metricsPath, StringComparison.OrdinalIgnoreCase) ||
+        context.Request.Path.Equals($"{metricsPath}/", StringComparison.OrdinalIgnoreCase);
+
+    if (isMetricsPort && !isMetricsPath)
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    if (!isMetricsPort && isMetricsPath)
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
+
 // --- Middleware for cleaning up double slashes in URLs ---
 app.Use(async (context, next) =>
 {
@@ -492,6 +517,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseRouting();
+app.UseHttpMetrics();
 
 // TODO: remove when working
 app.Use(async (ctx, next) =>
@@ -630,6 +656,7 @@ app.MapGet("/help", async () =>
 app.UseAntiforgery();
 
 // --- Endpoints ---
+app.MapMetrics(metricsPath);
 app.MapControllers(); // For versioned REST API
 app.MapRazorComponents<App>()
    .AddInteractiveServerRenderMode(); // For Blazor pages

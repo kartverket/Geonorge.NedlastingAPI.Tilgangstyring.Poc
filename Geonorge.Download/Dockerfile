@@ -11,8 +11,9 @@ RUN apk add --no-cache icu-libs icu-data-full tzdata
 USER 150
 WORKDIR /app
 EXPOSE 8080
-#EXPOSE 8081
-ENV ASPNETCORE_HTTP_PORTS=8080
+EXPOSE 8081
+ENV TZ=Europe/Oslo
+ENV ASPNETCORE_HTTP_PORTS=8080;8081
 ENV ASPNETCORE_HTTPS_PORTS=
 
 # This stage is used to build the service project
