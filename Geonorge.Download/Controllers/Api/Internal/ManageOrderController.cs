@@ -72,19 +72,40 @@ namespace Geonorge.Download.Controllers.Api.Internal
         }
 
         [HttpPost("update-order-status")]
-        public IActionResult UpdateOrderStatus(UpdateOrderStatusRequest orderStatus)
+        public async Task<IActionResult> UpdateOrderStatus()
         {
+            // TODO: FME Should use headers for Content-Type=application/json instead of adding it in query parameter.
             try
             {
-                logger.LogInformation($"UpdateOrderStatus invoked for order: {orderStatus.OrderUuid}");
+                UpdateOrderStatusRequest? orderStatus;
+
+                using (var reader = new StreamReader(Request.Body))
+                {
+                    var body = await reader.ReadToEndAsync();
+                    orderStatus = JsonSerializer.Deserialize<UpdateOrderStatusRequest>(
+                        body,
+                        new JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+                }
+
+                if (orderStatus == null)
+                {
+                    logger.LogInformation("Bad request - could not deserialize request body.");
+                    return BadRequest("Invalid request body.");
+                }
+
+                logger.LogInformation("UpdateOrderStatus invoked for order: {OrderUuid}", orderStatus.OrderUuid);
 
                 orderService.UpdateOrderStatus(orderStatus);
             }
             catch (Exception e)
             {
-                logger.LogError(e.Message, e);
+                logger.LogError(e, "Failed to update order status");
                 return StatusCode(StatusCodes.Status500InternalServerError, e);
             }
+
             return Ok();
         }
 
