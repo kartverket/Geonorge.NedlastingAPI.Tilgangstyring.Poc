@@ -202,6 +202,15 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddAuthorization();
 
 // --- Services ---
+builder.Services.AddSingleton(new GraphMailOptions
+{
+    TenantId = builder.Configuration["GraphMail:TenantId"]!,
+    ClientId = builder.Configuration["GraphMail:ClientId"]!,
+    ClientSecret = builder.Configuration["GraphMail:ClientSecret"]!,
+    SenderMailbox = builder.Configuration["GraphMail:SenderEmail"]!,
+    BaseUrl = builder.Configuration["GraphMail:BaseUrl"]!
+});
+builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddSingleton<IRegisterFetcher, RegisterFetcher>();
 builder.Services.AddScoped<IEiendomService, EiendomService>();
 builder.Services.AddScoped<ICapabilitiesService, CapabilitiesService>();
@@ -220,7 +229,7 @@ builder.Services.AddScoped<IUpdateMetadataService, UpdateMetadataService>();
 builder.Services.AddScoped<IUpdateFileStatusService, UpdateFileStatusService>();
 
 // Optional service using HttpClient
-builder.Services.AddHttpClient<IEmailService, EmailService>();
+//builder.Services.AddHttpClient<IEmailService, EmailService>();
 builder.Services.AddHttpClient<IExternalRequestService, ExternalRequestService>(client =>
 {
     var timeout = int.TryParse(builder.Configuration["HttpTimeout"], out var seconds) && seconds > 0
@@ -670,6 +679,15 @@ app.MapFallback(async context =>
 });
 
 app.Run();
+
+public sealed class GraphMailOptions
+{
+    public required string TenantId { get; init; }
+    public required string ClientId { get; init; }
+    public required string ClientSecret { get; init; }
+    public required string SenderMailbox { get; init; }
+    public required string BaseUrl { get; init; }
+}
 
 public sealed record GcsSettings(string Bucket);
 

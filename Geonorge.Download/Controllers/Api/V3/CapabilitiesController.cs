@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Reflection;
 using System.Web;
 
@@ -44,10 +45,32 @@ namespace Geonorge.Download.Controllers.Api.V3
         IConfiguration config, 
         ICapabilitiesService capabilitiesService, 
         IDownloadService downloadService, 
-        IWebHostEnvironment webHostEnvironment,
+        IWebHostEnvironment webHostEnvironment, 
+        IEmailService emailService,
         StorageClient storageClient,
         GcsSettings gcsSettings) : ControllerBase
     {
+
+        [HttpGet("mail/send")]
+        public IActionResult SendTestEmail()
+        {
+            MailMessage mail = new MailMessage();
+            mail.To.Add("paalmr@hotmail.com");
+            mail.Subject = "Test email from Geonorge Download API";
+            mail.Body = "This is a test email sent from the Geonorge Download API to verify email sending functionality.";
+
+            try
+            {
+                emailService.Send(mail);
+                return Ok("Email sent successfully.");
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error sending test email");
+                return StatusCode(StatusCodes.Status500InternalServerError, "Error sending email: " + ex.Message);
+            }
+        }
+
         /// <summary>
         /// Get Capabilities from download service
         /// </summary>
