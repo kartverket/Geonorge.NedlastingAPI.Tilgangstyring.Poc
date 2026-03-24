@@ -167,7 +167,7 @@ namespace Geonorge.Download.Controllers.Api.V3
             {
                 var canDownload = true;
 
-                if (config["FmeAreaCheckerEnabled"].Equals("true"))
+                if (bool.TryParse(config["FmeAreaCheckerEnabled"]!, out _))
                     canDownload = downloadService.AreaIsWithinDownloadLimits(request.coordinates,
                         request.coordinateSystem, request.metadataUuid);
 
