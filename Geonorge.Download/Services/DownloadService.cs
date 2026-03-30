@@ -1,5 +1,4 @@
 ﻿using Geonorge.Download.Services.Interfaces;
-using Microsoft.Net.Http.Headers;
 using Newtonsoft.Json.Linq;
 using System.Net;
 using System.Text;
@@ -10,125 +9,62 @@ namespace Geonorge.Download.Services
     {
         public async Task StreamRemoteFileToResponseAsync(HttpContext httpContext, string url)
         {
-            const int bufferSize = 64 * 1024; // 64 KB
-            var requestAborted = httpContext.RequestAborted;
+            const int bufferSize = 10_000;
+
+            var cancellationToken = httpContext.RequestAborted;
 
             try
             {
-                var client = httpClientFactory.CreateClient("FileStreamingClient");
+                var client = httpClientFactory.CreateClient();
 
-                using var remoteResponse = await client.GetAsync(
-                    url,
-                    HttpCompletionOption.ResponseHeadersRead,
-                    requestAborted);
+                using var remoteResponse = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
 
-                if (remoteResponse.Content == null)
+                if (!remoteResponse.IsSuccessStatusCode || remoteResponse.Content == null)
                 {
-                    if (!httpContext.Response.HasStarted)
-                    {
-                        httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-                        await httpContext.Response.WriteAsync("File not found or inaccessible.", requestAborted);
-                    }
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    await httpContext.Response.WriteAsync("File not found or inaccessible.", cancellationToken);
                     return;
                 }
 
-                if (remoteResponse.StatusCode == HttpStatusCode.NotFound)
+                var remoteStream = await remoteResponse.Content.ReadAsStreamAsync(cancellationToken);
+
+                if (remoteStream == null)
                 {
-                    if (!httpContext.Response.HasStarted)
-                    {
-                        httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
-                        await httpContext.Response.WriteAsync("File not found or inaccessible.", requestAborted);
-                    }
+                    httpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+                    await httpContext.Response.WriteAsync("File stream was null.", cancellationToken);
                     return;
                 }
-
-                if (!remoteResponse.IsSuccessStatusCode)
-                {
-                    logger.LogWarning(
-                        "Remote server returned non-success status code {StatusCode} while streaming file from: {Url}",
-                        (int)remoteResponse.StatusCode,
-                        url);
-
-                    if (!httpContext.Response.HasStarted)
-                    {
-                        // Choose either passthrough or map to 502. Passthrough is often more honest.
-                        httpContext.Response.StatusCode = (int)remoteResponse.StatusCode;
-                        await httpContext.Response.WriteAsync("Unable to fetch remote file.", requestAborted);
-                    }
-                    return;
-                }
-
-                await using var remoteStream = await remoteResponse.Content.ReadAsStreamAsync(requestAborted);
 
                 var response = httpContext.Response;
-
-                response.ContentType =
-                    remoteResponse.Content.Headers.ContentType?.ToString()
-                    ?? "application/octet-stream";
+                response.ContentType = "application/octet-stream";
 
                 var fileName = Path.GetFileName(new Uri(url).AbsolutePath);
-                if (!string.IsNullOrWhiteSpace(fileName))
-                {
-                    var contentDisposition = new ContentDispositionHeaderValue("attachment")
-                    {
-                        FileNameStar = fileName
-                    };
-
-                    response.Headers[HeaderNames.ContentDisposition] = contentDisposition.ToString();
-                }
+                response.Headers["Content-Disposition"] = $"attachment; filename=\"{fileName}\"";
 
                 if (remoteResponse.Content.Headers.ContentLength.HasValue)
-                {
-                    response.ContentLength = remoteResponse.Content.Headers.ContentLength.Value;
-                }
+                    response.Headers["Content-Length"] = remoteResponse.Content.Headers.ContentLength.Value.ToString();
 
-                // Copy upstream stream directly to downstream response body.
-                // No manual per-chunk flush: let ASP.NET Core / Kestrel handle buffering.
-                await remoteStream.CopyToAsync(response.Body, bufferSize, requestAborted);
-            }
-            catch (OperationCanceledException ex) when (requestAborted.IsCancellationRequested)
-            {
-                logger.LogWarning(
-                    ex,
-                    "Download request was aborted while streaming remote file from: {Url}",
-                    url);
-            }
-            catch (TaskCanceledException ex) when (!requestAborted.IsCancellationRequested)
-            {
-                // Usually indicates upstream timeout or some other HttpClient-side cancellation.
-                logger.LogError(
-                    ex,
-                    "Upstream request timed out or was canceled while streaming remote file from: {Url}",
-                    url);
+                var buffer = new byte[bufferSize];
+                int bytesRead;
 
-                if (!httpContext.Response.HasStarted)
+                while ((bytesRead = await remoteStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
                 {
-                    httpContext.Response.StatusCode = StatusCodes.Status504GatewayTimeout;
-                    await httpContext.Response.WriteAsync(
-                        "Timed out while downloading the remote file.",
-                        CancellationToken.None);
+                    await response.Body.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                    await response.Body.FlushAsync(cancellationToken);
                 }
             }
-            catch (IOException ex) when (requestAborted.IsCancellationRequested)
+            catch (OperationCanceledException)
             {
-                logger.LogWarning(
-                    ex,
-                    "Client disconnected while receiving streamed file from: {Url}",
-                    url);
+                logger.LogWarning("Client disconnected during streaming of file from: {Url}", url);
+                // No rethrow needed — cancellation ends the response
             }
             catch (Exception ex)
             {
-                logger.LogError(
-                    ex,
-                    "Unhandled exception while streaming file from: {Url}",
-                    url);
-
+                logger.LogError(ex, "Unhandled exception while streaming file from: {Url}", url);
                 if (!httpContext.Response.HasStarted)
                 {
                     httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-                    await httpContext.Response.WriteAsync(
-                        "An error occurred while streaming the file.",
-                        CancellationToken.None);
+                    await httpContext.Response.WriteAsync("An error occurred while streaming the file.", cancellationToken);
                 }
             }
         }
