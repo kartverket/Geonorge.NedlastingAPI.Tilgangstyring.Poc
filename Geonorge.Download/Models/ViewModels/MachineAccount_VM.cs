@@ -25,6 +25,7 @@ namespace Geonorge.Download.Models
         public DateTime? Created { get; set; }
 
         // The roles chosen in the UI
+        [MinLength(1, ErrorMessage = "Vennligst velg minst 1 rolle")]
         public List<string> Roles { get; set; } = new();
     }
 

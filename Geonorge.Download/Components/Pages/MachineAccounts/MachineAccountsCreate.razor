@@ -9,7 +9,7 @@
 
 <h2>Opprett ny</h2>
 
-<EditForm Model="model" OnSubmit="HandleValidSubmit">
+<EditForm EditContext="editContext" OnValidSubmit="HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary class="text-danger" />
 
@@ -61,11 +61,13 @@
             <label class="control-label col-md-2" for="Roles">Roles</label>
             <div class="col-md-10">
                 <CascadingValue Name="Standalone" Value="true">
-                    <SimpleMultiselect Options="availableRoles"  
+                    <SimpleMultiselect Options="availableRoles"
                                        TItem="string"
-                                       @bind-SelectedOptions="selectedRoles"
+                                       SelectedOptions="selectedRoles"
+                                       SelectedOptionsChanged="OnRolesChanged"
                                        Style="width: 100%; max-width: 400px;" />
                 </CascadingValue>
+                <ValidationMessage For="() => model!.Roles" class="text-danger" />
             </div>
         </div>
 
@@ -83,22 +85,33 @@
 
 @code {
     private MachineAccountCreate_VM? model { get; set; } = new();
+    private EditContext editContext = default!;
     private List<string> availableRoles { get; set; } = new();
     private HashSet<string> selectedRoles { get; set; } = new();
 
     protected override Task OnInitializedAsync()
     {
         model ??= new();
+        editContext = new EditContext(model);
 
         availableRoles = MachineAccountService.GetAvailableRoles();
 
         return Task.CompletedTask;
     }
 
+    private void OnRolesChanged(HashSet<string> value)
+    {
+        selectedRoles = value;
+        model!.Roles = value.ToList();
+
+        // Re-validate the Roles field so the message clears/appears as soon as the selection changes
+        editContext.NotifyFieldChanged(FieldIdentifier.Create(() => model!.Roles));
+    }
+
     private async Task HandleValidSubmit()
     {
-        model!.Roles = selectedRoles.ToList();
-        await MachineAccountService.CreateAsync(model);
+        // model.Roles is kept in sync via OnRolesChanged, so it is validated on submit
+        await MachineAccountService.CreateAsync(model!);
         Nav.NavigateTo("/machineaccounts");
     }
 
