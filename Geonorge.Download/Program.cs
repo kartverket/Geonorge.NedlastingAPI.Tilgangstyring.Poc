@@ -38,6 +38,7 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 
+
 var builder = WebApplication.CreateBuilder(args);
 const string metricsPath = "/metrics";
 var metricsPort = builder.Configuration.GetValue<int?>("Metrics:Port") ?? 8081;
