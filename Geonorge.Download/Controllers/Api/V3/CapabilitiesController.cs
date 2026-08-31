@@ -44,9 +44,10 @@ namespace Geonorge.Download.Controllers.Api.V3
         IConfiguration config, 
         ICapabilitiesService capabilitiesService, 
         IDownloadService downloadService, 
-        IWebHostEnvironment webHostEnvironment,
-        StorageClient storageClient,
-        GcsSettings gcsSettings) : ControllerBase
+        IWebHostEnvironment webHostEnvironment
+        //StorageClient storageClient,
+        //GcsSettings gcsSettings
+        ) : ControllerBase
     {
         /// <summary>
         /// Get Capabilities from download service
@@ -225,7 +226,7 @@ namespace Geonorge.Download.Controllers.Api.V3
 
                 var fileName = id + extension;
 
-                var clipperFile = await UploadToGcsAsync(file, storageClient, gcsSettings, HttpContext);
+                var clipperFile = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}/clipperfiles/{fileName}"; // await UploadToGcsAsync(file, storageClient, gcsSettings, HttpContext);
 
                 // Override in local dev
                 if (clipperFile.Contains("localhost"))
@@ -264,34 +265,34 @@ namespace Geonorge.Download.Controllers.Api.V3
             }
         }
 
-        private async Task<string> UploadToGcsAsync(
-            IFormFile file,
-            StorageClient storage,
-            GcsSettings gcs,
-            HttpContext http)
-        {
-            var id = Guid.NewGuid().ToString();
-            var extension = Path.GetExtension(file.FileName);
-            var objectKey = id + extension;
+        //private async Task<string> UploadToGcsAsync(
+        //    IFormFile file,
+        //    StorageClient storage,
+        //    GcsSettings gcs,
+        //    HttpContext http)
+        //{
+        //    var id = Guid.NewGuid().ToString();
+        //    var extension = Path.GetExtension(file.FileName);
+        //    var objectKey = id + extension;
 
-            var provider = new FileExtensionContentTypeProvider();
-            provider.Mappings[".sos"] = "text/vnd.sosi";
-            provider.Mappings[".gml"] = "application/gml+xml";
-            provider.Mappings[".gdb"] = "application/octet-stream";
-            provider.Mappings[".geojson"] = "application/geo+json";
-            provider.Mappings[".7z"] = "application/x-7z-compressed";
-            if (!provider.TryGetContentType(objectKey, out var contentType))
-                contentType = file.ContentType ?? "application/octet-stream";
+        //    var provider = new FileExtensionContentTypeProvider();
+        //    provider.Mappings[".sos"] = "text/vnd.sosi";
+        //    provider.Mappings[".gml"] = "application/gml+xml";
+        //    provider.Mappings[".gdb"] = "application/octet-stream";
+        //    provider.Mappings[".geojson"] = "application/geo+json";
+        //    provider.Mappings[".7z"] = "application/x-7z-compressed";
+        //    if (!provider.TryGetContentType(objectKey, out var contentType))
+        //        contentType = file.ContentType ?? "application/octet-stream";
 
-            await using var src = file.OpenReadStream();
-            await storage.UploadObjectAsync(
-                bucket: gcs.Bucket,
-                objectName: $"clipperfiles/{objectKey}",
-                contentType: contentType,
-                source: src);
+        //    await using var src = file.OpenReadStream();
+        //    await storage.UploadObjectAsync(
+        //        bucket: gcs.Bucket,
+        //        objectName: $"clipperfiles/{objectKey}",
+        //        contentType: contentType,
+        //        source: src);
 
-            return $"{http.Request.Scheme}://{http.Request.Host}/clipperfiles/{objectKey}";
-        }
+        //    return $"{http.Request.Scheme}://{http.Request.Host}/clipperfiles/{objectKey}";
+        //}
 
         private bool CheckFileType(string fileName)
         {

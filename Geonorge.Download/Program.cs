@@ -51,11 +51,11 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-var gcsSection = builder.Configuration.GetSection("Gcs");
-var bucketName = gcsSection["Bucket"];
+//var gcsSection = builder.Configuration.GetSection("Gcs");
+//var bucketName = gcsSection["Bucket"];
 
-builder.Services.AddSingleton(StorageClient.Create());
-builder.Services.AddSingleton(new GcsSettings(bucketName));
+//builder.Services.AddSingleton(StorageClient.Create());
+//builder.Services.AddSingleton(new GcsSettings(bucketName));
 
 
 // --- Database ---
@@ -629,32 +629,38 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/clipperfiles/{**objectKey}", async 
-    (
-        string objectKey,
-        HttpContext http,
-        StorageClient storage,
-        GcsSettings gcs
-    ) =>
+app.MapGet("/clipperfiles/{**objectKey}", (string objectKey) =>
 {
     if (string.IsNullOrWhiteSpace(objectKey))
         return Results.BadRequest("Missing object key");
 
-    try
-    {
-        var meta = await storage.GetObjectAsync(gcs.Bucket, $"clipperfiles/{objectKey}");
+    var dummyGeoJson = """
+        {
+          "type": "FeatureCollection",
+          "features": [
+            {
+              "type": "Feature",
+              "properties": {},
+              "geometry": {
+                "coordinates": [
+                  [
+                    [10.256389880623232, 60.17125410689505],
+                    [10.255192210991169, 60.17069736357095],
+                    [10.256977827533717, 60.16924372076605],
+                    [10.261437513728367, 60.16945603028341],
+                    [10.262169180994505, 60.170762353550316],
+                    [10.259739000432347, 60.17153789071773],
+                    [10.256389880623232, 60.17125410689505]
+                  ]
+                ],
+                "type": "Polygon"
+              }
+            }
+          ]
+        }
+        """;
 
-        http.Response.ContentType = meta.ContentType ?? "application/octet-stream";
-        http.Response.ContentLength = (long?)meta.Size;
-        http.Response.Headers["Cache-Control"] = "public,max-age=31536000,immutable";
-
-        await storage.DownloadObjectAsync(gcs.Bucket, $"clipperfiles/{objectKey}", http.Response.Body);
-        return Results.Empty;
-    }
-    catch (Google.GoogleApiException ex) when (ex.HttpStatusCode == System.Net.HttpStatusCode.NotFound)
-    {
-        return Results.NotFound();
-    }
+    return Results.Content(dummyGeoJson, "application/geo+json");
 });
 
 app.MapGet("/help", async () =>
@@ -690,7 +696,7 @@ public sealed class GraphMailOptions
     public required string BaseUrl { get; init; }
 }
 
-public sealed record GcsSettings(string Bucket);
+//public sealed record GcsSettings(string Bucket);
 
 internal sealed class ClaimsHelper
 {
