@@ -1,20 +1,22 @@
-name: NedlastingAPI
+name: ImageBuild
+
 on:
   push:
     branches:
-      - dotnet-8
-  workflow_dispatch:
+      - main
 
 env:
   DOCKER_REGISTRY: ghcr.io
-  NEDLASTINGAPI_NAME: kartverket/geonorge-nedlastingapi
+  NAME: kartverket/tilgangstyring-nedlastingapi
+  ENV_SUFFIX: dev
+  DEPLOY_PATH: env/atkv3-dev/geonorge-kartkatalog-dev-tilgangsstyring/tilgangstyring-nedlastingapi-version
 
 jobs:
-  build_nedlastingapi:
-    name: Build and Push genorge-nedlastingapi Image
+  build_image:
+    name: Build image
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       packages: write
       actions: read
       id-token: write
@@ -22,16 +24,12 @@ jobs:
     outputs:
       version: ${{ steps.set_output.outputs.version }}
       tags: ${{ steps.meta.outputs.tags }}
-      commit_message: ${{ steps.get_commit_message.outputs.nedlasting_commit_message }}
+      short_tag: ${{ steps.short_tag.outputs.value }}
+      commit_message: ${{ steps.get_commit_message.outputs.commit_message }}
+      commit_author_name: ${{ steps.get_commit_author.outputs.name }}
+      commit_author_email: ${{ steps.get_commit_author.outputs.email }}
 
     steps:
-      # - run: echo ${{ github.event.client_payload.ref }}
-      # - uses: octo-sts/action@6177b4481c00308b3839969c3eca88c96a91775f # v1.0.0
-      #   id: octo-sts
-      #   with:
-      #     scope: kartverket/datadeling-apps
-      #     identity: geonorge-nedlastingapi
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -39,16 +37,30 @@ jobs:
       - name: Get commit message
         id: get_commit_message
         run: |
-          RAW_MSG="$(git log -1 --pretty=%B)"
-          CLEANED_MSG=$(jq -Rs '.' <<<"$RAW_MSG" | jq -r '. | gsub("\\n";" ")')
-          echo "nedlasting_commit_message=$CLEANED_MSG" >> $GITHUB_OUTPUT
+          {
+            echo 'commit_message<<EOF'
+            git log -1 --pretty=%B
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Get commit author
+        id: get_commit_author
+        run: |
+          echo "name=$(git log -1 --pretty=%an)" >> "$GITHUB_OUTPUT"
+          echo "email=$(git log -1 --pretty=%ae)" >> "$GITHUB_OUTPUT"
 
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.DOCKER_REGISTRY }}/${{ env.NEDLASTINGAPI_NAME }}
-          tags: type=sha,format=long
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,format=short
+
+      - name: Compute short tag
+        id: short_tag
+        run: echo "value=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Login to Github Container Registry
         uses: docker/login-action@v3
@@ -58,7 +70,7 @@ jobs:
           password: ${{ github.token }}
 
       - name: Build docker image and push
-        id: build_nedlastingapi
+        id: build_image
         uses: docker/build-push-action@v6
         with:
           context: ./
@@ -67,44 +79,45 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           push: true
 
-      - name: Summarize Image Digest and Set Output
+      - name: Summarize image digest and set output
         id: set_output
         run: |
-          echo "Full Image URL: ${{ env.DOCKER_REGISTRY }}/${{ env.NEDLASTINGAPI_NAME }}:${{ steps.meta.outputs.version }}@${{steps.build_nedlastingapi.outputs.digest}}" >> $GITHUB_STEP_SUMMARY
-          echo "version=${{ github.ref_name }}@${{steps.build_nedlastingapi.outputs.digest}}" >> $GITHUB_OUTPUT
+          echo "Tags: ${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Digest: ${{ steps.build_image.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "version=${{ github.ref_name }}@${{ steps.build_image.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [build_nedlastingapi]
-    name: Deploy
-    permissions:
-      contents: read
-      id-token: write
-    # if: github.event_name != 'pull_request'
-    steps:
-      - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05
-        id: octo-sts
-        with:
-          scope: kartverket/datadeling-apps
-          identity: geonorge-nedlastingsapi
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: [build_image]
+  #   name: Deploy
+  #   permissions:
+  #     contents: read
+  #     id-token: write
+  #   steps:
+  #     - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05
+  #       id: octo-sts
+  #       with:
+  #         scope: kartverket/geonorge-apps
+  #         identity: kartkatalog-be-tilgangsstyring-poc
 
-      - name: Checkout apps repository
-        uses: actions/checkout@v6
-        with:
-          repository: kartverket/datadeling-apps
-          ref: main
-          token: ${{ steps.octo-sts.outputs.token }}
+  #     - name: Checkout apps repository
+  #       uses: actions/checkout@v6
+  #       with:
+  #         repository: kartverket/geonorge-apps
+  #         ref: main
+  #         token: ${{ steps.octo-sts.outputs.token }}
 
-      - name: Git setup for deploy
-        run: |
-          git config --global user.email "geonorge-nedlastingsapi@kartverket.no"
-          git config --global user.name "geonorge-nedlastingsapi CI"
+  #     - name: Git setup for deploy
+  #       run: |
+  #         git config --global user.email "${{ needs.build_image.outputs.commit_author_email }}"
+  #         git config --global user.name "${{ needs.build_image.outputs.commit_author_name }}"
 
-      - name: Update deployment
-        env:
-          COMMIT_MESSAGE: ${{ needs.build_nedlastingapi.outputs.commit_message }}
-        run: |
-          echo "\"${{ needs.build_nedlastingapi.outputs.tags }}"\" > env/atkv3-dev/datadeling-geonorge/geonorge-nedlasting-api-version
-          git add .
-          git commit -m "$COMMIT_MESSAGE"
-          git push
+  #     - name: Update deployment
+  #       env:
+  #         COMMIT_MESSAGE: ${{ needs.build_image.outputs.commit_message }}
+  #         IMAGE: "${{ env.DOCKER_REGISTRY }}/${{ env.NAME }}:${{ needs.build_image.outputs.short_tag }}"
+  #       run: |
+  #         echo "\"${IMAGE}\"" > "${{ env.DEPLOY_PATH }}"
+  #         git add .
+  #         git commit -m "$COMMIT_MESSAGE"
+  #         git push
