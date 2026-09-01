@@ -438,6 +438,7 @@ builder.Services.AddCors(options =>
                 "https://kartkatalog.dev.geonorge.no",
                 "https://kartkatalog.test.geonorge.no",
                 "https://kartkatalog.geonorge.no",
+                "https://tilgangstyring-nedlastingapi.atkv3-dev.kartverket.cloud",
                 "https://kartkatalog-frontend.dev.geonorge.no",
                 "http://kartkatalog-frontend.dev.geonorge.no")
             .AllowAnyMethod().AllowAnyHeader().AllowCredentials());
