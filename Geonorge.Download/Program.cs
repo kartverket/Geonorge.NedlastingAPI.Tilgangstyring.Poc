@@ -458,6 +458,7 @@ builder.Services.AddCors(options =>
                 "http://kartkatalog.dev.geonorge.no",
                 "https://kartkatalog.dev.geonorge.no",
                 "https://kartkatalog.test.geonorge.no",
+                "https://tilgangstyring-kartkatalog-dev.atkv3-dev.kartverket-intern.cloud/",
                 "https://kartkatalog.geonorge.no",
                 "https://localhost:44355",
                 "http://localhost:50081")
