@@ -21,9 +21,10 @@ namespace Geonorge.Download.Services
         INotificationService notificationService, 
         IEiendomService eiendomService, 
         IDownloadService downloadService,
+        OpaAuthorizationClient opaAuthorizationClient,
         DownloadContext downloadContext) : IOrderService
     {
-        public Order CreateOrder(OrderType incomingOrder, ClaimsPrincipal principal)
+        public async Task<Order> CreateOrder(OrderType incomingOrder, ClaimsPrincipal principal)
         {
             var order = new Order
             {
@@ -33,7 +34,7 @@ namespace Geonorge.Download.Services
                 SoftwareClientVersion = incomingOrder.softwareClientVersion
             };
 
-            if (principal != null)
+            /*if (principal != null)
                 order.username = principal.UsernameForStorage();
 
             List<Eiendom> eiendoms = null;
@@ -47,16 +48,20 @@ namespace Geonorge.Download.Services
             List<OrderItem> clippableOrderItems = clipperService.GetClippableOrderItems(incomingOrder, principal, eiendoms);
             order.AddOrderItems(clippableOrderItems);
             
-            CheckAccessRestrictions(order, principal);
+            CheckAccessRestrictions(order, principal);*/
+            if (!await opaAuthorizationClient.IsAllowedAsync("read", "datasett", "123"))
+            {
+                throw new AccessRestrictionException("Opa says no");
+            }
 
-            CheckRestrictions(clippableOrderItems);
+            /*CheckRestrictions(clippableOrderItems);*/
 
-            SaveOrder(order);
+            /*SaveOrder(order);*/
 
-            clipperService.SendClippingRequests(clippableOrderItems, order.email);
+            /*clipperService.SendClippingRequests(clippableOrderItems, order.email);*/
 
-            if(clippableOrderItems.Count > 0)
-                notificationService.SendOrderInfoNotification(order, clippableOrderItems);
+            /*if(clippableOrderItems.Count > 0)*/
+            /*    notificationService.SendOrderInfoNotification(order, clippableOrderItems);*/
 
             return order;
         }
@@ -226,7 +231,7 @@ namespace Geonorge.Download.Services
                         query = query.Where(f => formatNames.Contains(f.Format));
                 }
 
-                // TODO: Sjekke mulige utfordringer med mange områder
+                // TODO: Sjekke mulige utfordringer med mange omrï¿½der
                 if (orderLine.areas != null && orderLine.areas.Any())
                 {
                     var grouped = orderLine.areas
@@ -518,7 +523,7 @@ namespace Geonorge.Download.Services
             bool allowed = result.Value<bool>("allowed");
 
             if(!allowed)
-                throw new FileSizeException("Filene er for store å pakke");
+                throw new FileSizeException("Filene er for store ï¿½ pakke");
         }
 
         private string CreatePackageCheckSizeUrl(Order order)

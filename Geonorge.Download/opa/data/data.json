@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "issuer": "https://login.example.com"
+  },
+  "authorization": {
+    "permissions": {
+      "pid-123": ["read", "create", "delete"],
+      "pid-456": ["read"]
+    }
+  }
+}

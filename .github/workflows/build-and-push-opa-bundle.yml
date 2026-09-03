@@ -1,0 +1,54 @@
+name: Build and push OPA bundle
+
+on: [push]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
+  actions: read
+
+jobs:
+  build:
+    uses: kartverket/github-workflows/.github/workflows/build-and-push-opa-bundle.yml@v4.13.2
+    with:
+      # artifact-name (**required**) is the name of the resulting artifact in GHCR (without tag).
+      # It must start with `ghcr.io/kartverket/<repo>`.
+      artifact-name: ghcr.io/${{ github.repository }}/opa-policies
+
+      # path (**required**) specifies which directory the OPA bundle should be built from.
+      # The directory can contain policies written in Rego and
+      path: Genorge.Download/opa/policies
+
+      # push is a boolean specifying whether the built bundle should be pushed to GHCR or not.
+      # Defaults to `true`.
+      push: true
+
+      # additional-tags is a comma-separated list of extra tags that the artifact pushed to GHCR should be tagged with.
+      # The workflow will always tag the artifact with `sha256-<sha256sum of built bundle>` to avoid uploading duplicate bundles.
+      additional-tags: ${{ github.ref_name }}
+
+      # test is a boolean specifying whether `opa test` should run before building.
+      # All tests defined in files ending in `_test.rego` in the `path` directory will then be run.
+      # Defaults to `false`.
+      test: true
+
+      # lint is a boolean specifying whether `regal lint` should run before building.
+      # All Rego files defined in the `path` directory will then be linted.
+      # Defaults to `false`.
+      lint: true
+
+      # lint-config-file specifies a file path to a Regal configuration file used during linting.
+      # You can read more about how to configure Regal through such a file at https://www.openpolicyagent.org/projects/regal/configuration.
+      lint-config-file: .regal/config.yaml
+
+      # check is a boolean specifying whether `opa check` should run before building.
+      # All files defined in the `path` directory will then be statically validated.
+      # Defaults to `false`.
+      check: true
+
+      # check-schema-path is a path to a JSON Schema directory or file used during `opa check` to
+      # validate that your rules conform to the schema for `input` and `data`.
+      check-schema-path: opa/schemas

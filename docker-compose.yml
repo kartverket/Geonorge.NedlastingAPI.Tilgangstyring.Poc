@@ -6,8 +6,25 @@ volumes:
   nedlasting_mssql:
 
 services:
+  opa:
+    image: openpolicyagent/opa:latest
+    ports:
+      - "3010:3010"
+    command:
+      - run
+      - --server
+      - --addr
+      - ":3010"
+      - --watch
+      - /policies
+      - /data/local
+    volumes:
+      - ./opa/policies:/policies:ro
+      - ./opa/data/local:/data/local:ro
+    networks:
+      - geonorge-network
+
   geonorge.download:
-    image: ${DOCKER_REGISTRY-}geonorgedownload
     build:
       context: .
       dockerfile: Geonorge.Download/Dockerfile

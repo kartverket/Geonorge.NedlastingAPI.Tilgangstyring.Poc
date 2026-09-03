@@ -56,7 +56,11 @@ builder.Host.UseSerilog();
 
 //builder.Services.AddSingleton(StorageClient.Create());
 //builder.Services.AddSingleton(new GcsSettings(bucketName));
-
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<OpaAuthorizationClient>(client =>
+{
+    client.BaseAddress = new Uri("http://opa:3010");
+});
 
 // --- Database ---
 var connectionString = Environment.GetEnvironmentVariable("EF_CONNECTION_STRING") ?? builder.Configuration.GetConnectionString("DefaultConnection");

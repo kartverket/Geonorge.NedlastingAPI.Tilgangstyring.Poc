@@ -15,4 +15,11 @@
     <None Include=".env" />
     <None Include="application_default_credentials.json" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="opa\policies\auth.rego" />
+    <Content Include="opa\policies\authorization.rego" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="opa\data\" />
+  </ItemGroup>
 </Project>

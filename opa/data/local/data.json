@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "issuer": "http://tokendings.tokenx-api:8080"
+  },
+  "authorization": {
+    "permissions": {
+      "28846096975": ["read", "create", "delete"]
+    }
+  }
+}
